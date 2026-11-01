@@ -11,6 +11,7 @@ import 'cover_cache.dart';
 import 'device_identity.dart';
 import 'downloader.dart';
 import 'preferred_ip.dart';
+import 'services/ad_service.dart';
 import 'sponsor_store.dart';
 import 'ui/notifications.dart';
 import 'ui/prefs.dart';
@@ -89,6 +90,11 @@ void restoreCachedConfig(String? cached) {
 
 /// 首帧之后的后台活。都不 await:它们办不完也不该影响用户看到界面。
 void warmUp() {
+  // 灰鲸广告:初始化 + 冷启动开屏一次。开屏失败、超时都直接放行,
+  // 绝不挡住首页(见 AdService.showSplash)。
+  unawaited(
+    AdService.instance.init().then((_) => AdService.instance.showSplash()),
+  );
   // 首页先出,历史与封面缓存由页面在首帧后异步补齐。
   unawaited(CoverCache.warmUp());
   // 上一次下载被系统杀掉时留下的分片(原生预分配到全尺寸,很占地方)。

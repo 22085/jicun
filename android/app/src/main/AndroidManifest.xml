@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- 解析接口和下载都是网络请求。调试清单里那份只对 debug 构建生效,
          release 包必须在主清单声明,否则装上去所有网络调用直接失败。 -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -22,6 +23,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
+        tools:replace="android:allowBackup"
         android:largeHeap="true">
         <!-- largeHeap:预览那个播放器是 ExoPlayer(走 media3),它按「秒数」缓冲
              而不按字节数 —— 抖音这条 8K 原画是 34 Mbps,缓冲几十秒就是 200MB 上下,

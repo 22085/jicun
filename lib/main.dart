@@ -15,6 +15,7 @@ import 'downloader.dart';
 import 'failure.dart';
 import 'history_store.dart';
 import 'parse_service.dart';
+import 'services/ad_service.dart';
 import 'shell_controller.dart';
 import 'update_coordinator.dart';
 import 'update_service.dart';
@@ -282,6 +283,9 @@ class HomeShellState extends State<LiquidGlassDemo>
         parsing = false;
         parseLocked = true;
       });
+      // 解析成功才记一次广告数:够 5 次且满足间隔时,结果展示之后
+      // 才试一次插屏(不 await、不挡结果,失败就是没有插屏)。
+      unawaited(AdService.instance.noteSuccessfulParse());
       // 只有解析成功才记历史 —— 失败不记,否则历史里全是没用的失败条目。
       // 存储出问题(写满、插件异常)不该影响这次展示,所以吞掉。
       try {

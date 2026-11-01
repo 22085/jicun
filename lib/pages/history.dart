@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:jicun/cover_cache.dart';
 import 'package:jicun/history_store.dart';
 import 'package:jicun/shell_controller.dart';
+import 'package:jicun/ui/ad_banner.dart';
+import 'package:jicun/ui/ad_feed_card.dart';
 import 'package:jicun/ui/glass.dart';
 import 'package:jicun/ui/icons.dart';
 import 'package:jicun/ui/motion.dart';
@@ -154,6 +156,11 @@ class HistoryPageState extends State<HistoryPage> {
               ),
             ),
           ),
+        // 列表末尾的信息流卡与底部横幅:失败时卡片留空位、横幅自动隐藏。
+        const SizedBox(height: 12),
+        const AdFeedCard(),
+        const SizedBox(height: 12),
+        const AdBanner(),
       ],
     );
   }

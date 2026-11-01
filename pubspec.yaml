@@ -53,6 +53,10 @@ dependencies:
   # 依赖,不只是测试用的。以前挂在 dev_dependencies 下,靠 flutter_test 的传递依赖
   # 凑着能编;现在生产代码要用,得放在这里。
   crypto: ^3.0.7
+  # 灰鲸广告插件(本地 vendored,见 plugins/flutter_ads_plugin/VENDORING.md):
+  # 开屏/插屏/激励/横幅/信息流,演示 ID 在 lib/services/ad_config.dart。
+  flutter_ads_plugin:
+    path: plugins/flutter_ads_plugin
 
 dev_dependencies:
   flutter_test:
