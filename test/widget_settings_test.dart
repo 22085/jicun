@@ -105,100 +105,39 @@ void main() {
     expect(find.text('浅色').hitTestable(), findsNothing);
   });
 
-  testWidgets('关于本APP:四张一行卡摊开摆着,开源地址点一下就复制', (tester) async {
-    usePhoneSurface(tester);
-    final copied = useClipboardWrite();
-    await tester.pumpWidget(const LiquidGlassDemo(autoCheckUpdate: false));
-    await tester.pump(const Duration(milliseconds: 300));
-
-    await tester.tap(find.text('设置').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('关于本APP'));
-    await tester.pumpAndSettle();
-
-    // 四张卡就是四行字,内容和文案一字不差。标题和内容在同一个 Text.rich 里
-    // (标题后跟一个半角冒号),所以断言整行的纯文本。
-    for (final line in const [
-      '开源地址:https://github.com/dhvbjvvb/jicun',
-      '制作人:春日大阪',
-      '彩蛋出席:奶龙,不知名小人物,不知名大人物',
-      '免责声明:本项目仅供学习与技术交流使用，请勿用于商业用途。解析与下载的内容版权归原作者所有，请自行确认拥有相应权利后再保存或传播，因使用本工具产生的一切后果由使用者自行承担。',
-    ]) {
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is RichText && w.text.toPlainText() == line,
-        ),
-        findsOneWidget,
-        reason: '这一行应该是「$line」',
-      );
-    }
-
-    // 不摆"点击即可复制"之类的提示(用户点名不要)
-    expect(find.textContaining('点击'), findsNothing);
-
-    // 但功能要在:点开源地址那一行就复制,并给回音
-    await tester.tap(find.textContaining('开源地址:'));
-    await tester.pumpAndSettle();
-    expect(copied, ['https://github.com/dhvbjvvb/jicun']);
-    expect(find.text('已复制'), findsOneWidget);
-  });
-
-  testWidgets('赞助名单:设置里进得去,页面只剩一句赞助文案', (tester) async {
+  testWidgets('关于本APP与赞助名单:设置入口已隐藏,广告展示入口在', (tester) async {
     usePhoneSurface(tester);
     await tester.pumpWidget(const LiquidGlassDemo(autoCheckUpdate: false));
     await tester.pump(const Duration(milliseconds: 300));
 
     await tester.tap(find.text('设置').first);
     await tester.pumpAndSettle();
-    expect(find.text('修改主题，底栏效果，自定义背景图'), findsOneWidget);
 
-    await tester.scrollUntilVisible(find.text('赞助名单'), 200);
-    expect(find.text('为本项目提供支持的吴彦祖和刘亦菲'), findsOneWidget);
-
-    await tester.tap(find.text('赞助名单'));
-    await tester.pumpAndSettle();
-
-    // 二级页是一张表:表头三列都在,某一条金额也摆出来了。
-    expect(find.text('微信昵称'), findsOneWidget);
-    expect(find.text('赞助时间'), findsOneWidget);
-    expect(find.text('赞助金额'), findsOneWidget);
-    expect(find.text('¥8.88'), findsOneWidget);
-    // 原来的提示卡删了,这页不再有可展开的卡。
-    expect(find.text('提示'), findsNothing);
-    expect(find.byIcon(CupertinoIcons.chevron_down), findsNothing);
+    // 入口藏了,页面本身还在库里,只是从设置里进不去了。
+    expect(find.text('关于本APP'), findsNothing);
+    expect(find.text('赞助名单'), findsNothing);
+    expect(find.text('广告展示(演示)'), findsOneWidget);
   });
 
-  testWidgets('赞助名单:线上那份拉回来之后,表格自己重画', (tester) async {
+  testWidgets('赞助名单:线上那份拉回来之后,存储里的表自己换新', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     usePhoneSurface(tester);
 
     // 替身吐一份线上格式的响应,名字是兜底里没有的 —— 它出现即说明
-    // "网络 -> 存储 -> 界面"这一条真的走通了。
+    // "网络 -> 存储"这一条真的走通了。页面入口已隐藏,这里只验存储。
     addTearDown(() => sponsorStore.fetchOverride = null);
     sponsorStore.fetchOverride = (_) async =>
         '{"updated":"2026-10-02T14:52:44+08:00","sponsors":['
         '{"name":"*联调","date":"10月3日","amount":"¥1.23"}]}';
     await sponsorStore.refresh();
 
-    await tester.pumpWidget(const LiquidGlassDemo(autoCheckUpdate: false));
-    await tester.pump(const Duration(milliseconds: 300));
-
-    await tester.tap(find.text('设置').first);
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('赞助名单'), 200);
-    await tester.tap(find.text('赞助名单'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('*联调'), findsOneWidget);
-    expect(find.text('10月3日'), findsOneWidget);
-    expect(find.text('¥1.23'), findsOneWidget);
+    expect(sponsorStore.list, contains(('*联调', '10月3日', '¥1.23')));
     // 兜底那份已经被顶掉了:它是"还能不能显示"的底线,不是一直挂着的备胎。
-    expect(find.text('¥8.88'), findsNothing);
+    expect(sponsorStore.list.any((s) => s.$3 == '¥8.88'), isFalse);
   });
 
-  testWidgets('使用帮助及反馈:反馈渠道点一下就复制,平台卡点开滑出教程', (tester) async {
+  testWidgets('使用帮助及反馈:平台卡点开滑出教程', (tester) async {
     usePhoneSurface(tester);
-    final copied = useClipboardWrite();
     await tester.pumpWidget(const LiquidGlassDemo());
     await tester.pump(const Duration(milliseconds: 300));
 
@@ -209,24 +148,7 @@ void main() {
     await tester.tap(find.text('使用帮助及反馈'));
     await tester.pumpAndSettle();
 
-    // 第一张卡:反馈渠道,两行都在,不伸缩
-    expect(find.text('反馈渠道'), findsOneWidget);
-    expect(find.text('1124541108'), findsOneWidget);
-    expect(find.text('1515068599@qq.com'), findsOneWidget);
-
-    await tester.tap(find.text('QQ群'));
-    await tester.pumpAndSettle();
-    expect(copied, ['1124541108']);
-    // 复制完要给回音,不然点了看不出发生过什么
-    expect(find.text('已复制'), findsOneWidget);
-    await tester.tap(find.text('知道了'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('QQ邮箱'));
-    await tester.pumpAndSettle();
-    expect(copied, ['1124541108', '1515068599@qq.com']);
-    await tester.tap(find.text('知道了'));
-    await tester.pumpAndSettle();
+    // 反馈渠道那张卡已拿掉:这页只剩平台卡。
 
     // 平台卡:名字和「支持解析的内容」在收起态就要看得见
     expect(find.text('抖音'), findsOneWidget);

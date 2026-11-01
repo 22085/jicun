@@ -1,16 +1,16 @@
 import 'package:flutter/cupertino.dart';
 // material 是**选择性**转出 foundation 的,defaultTargetPlatform 不在里面,得自己引。
-import 'package:flutter/services.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:jicun/ui/ad_banner.dart';
 import 'package:jicun/ui/glass.dart';
 import 'package:jicun/ui/motion.dart';
 import 'package:jicun/ui/palette.dart';
-import 'package:jicun/ui/popup.dart';
 
 /// 「使用帮助及反馈」二级页,从 lib/pages/settings.dart 拆出来。
 ///
-/// 这一页连数据都自带的:平台清单 [kPlatforms]、教程文案、反馈渠道,全在这一个
-/// 文件里,和「怎么改设置」没有关系。
+/// 这一页连数据都自带的:平台清单 [kPlatforms]、教程文案,全在这一个
+/// 文件里,和「怎么改设置」没有关系。反馈渠道那张卡已拿掉(QQ 群/邮箱
+/// 不再展示),第一张卡就是第一个平台。
 
 /// 一个平台的卡片要显示的四样东西。
 ///
@@ -74,7 +74,7 @@ const List<PlatformCardInfo> kPlatforms = [
 
 /// 「设置 → 使用帮助及反馈」的二级页。
 ///
-/// 第一张是反馈渠道,第二张起一个平台一张伸缩卡。不再放顶栏插画:原来的图占掉
+/// 一个平台一张伸缩卡。不再放顶栏插画:原来的图占掉
 /// 大半屏,反馈入口被推到一屏之外;去掉之后第一张卡直接贴顶,再用 [TopFadeListView]
 /// 给顶边补一圈淡出 —— 卡片滚上去是化掉的,不是被视口切一条硬边(深浅两色同效)。
 class HelpFeedbackPage extends StatelessWidget {
@@ -92,11 +92,13 @@ class HelpFeedbackPage extends StatelessWidget {
           child: TopFadeListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              FeedbackChannelsCard(isDark: isDark),
               for (final platform in kPlatforms) ...[
                 const SizedBox(height: 16),
                 PlatformCard(isDark: isDark, info: platform),
               ],
+              // 页面底部横幅:加载失败自动隐藏,不留空白条。
+              const SizedBox(height: 16),
+              const AdBanner(),
             ],
           ),
         ),
@@ -105,103 +107,6 @@ class HelpFeedbackPage extends StatelessWidget {
   }
 }
 
-/// 「反馈渠道」卡。摊开不伸缩:只有两行,而且是这页最想看的东西,
-/// 不该再点一下才给(同 [StorageLocationCard] 的理由)。
-class FeedbackChannelsCard extends StatelessWidget {
-  const FeedbackChannelsCard({super.key, required this.isDark});
-
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassPanel(
-      isDark: isDark,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 22, 14, 8),
-            child: GoogleCardTitle(isDark: isDark, text: '反馈渠道'),
-          ),
-          CopyableRow(
-            isDark: isDark,
-            label: 'QQ群',
-            value: '1124541108',
-            hint: '点击即可复制',
-          ),
-          CopyableRow(
-            isDark: isDark,
-            label: 'QQ邮箱',
-            value: '1515068599@qq.com',
-            hint: '点击即可复制',
-          ),
-          const SizedBox(height: 14),
-        ],
-      ),
-    );
-  }
-}
-
-/// 「标签 + 可复制值」。整行点一下就进剪贴板,右边那句说明为什么要复制。
-///
-/// 反馈渠道是号码/邮箱,用户没法从卡片上直接选中复制,所以整行当按钮用;
-/// 点了弹一句回音 —— 复制成功在这张卡上看不出任何变化,不给回音就像没点到。
-class CopyableRow extends StatelessWidget {
-  const CopyableRow({
-    super.key,
-    required this.isDark,
-    required this.label,
-    required this.value,
-    required this.hint,
-  });
-
-  final bool isDark;
-  final String label;
-  final String value;
-  final String hint;
-
-  @override
-  Widget build(BuildContext context) {
-    final (foreground: foreground, secondary: secondary) = settingsPalette(
-      isDark,
-    );
-    return PlainTap(
-      onTap: () async {
-        await Clipboard.setData(ClipboardData(text: value));
-        if (!context.mounted) return;
-        // 和「复制文案」同一个回音弹窗,全 APP 一套
-        showInfo(context, '已复制', '$label:$value');
-      },
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
-        child: Row(
-          children: [
-            Text(label, style: TextStyle(color: foreground, fontSize: 15)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                value,
-                style: TextStyle(
-                  color: secondary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(hint, style: TextStyle(color: secondary, fontSize: 11.5)),
-            const SizedBox(width: 6),
-            Icon(CupertinoIcons.doc_on_doc, size: 16, color: secondary),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 一张平台卡:左边商店图标,右边平台名 + 支持解析的内容,点开滑出教程。
-///
-/// 伸缩(时长、曲线、箭头)与「主题与外观」那三张卡共用 [Reveal] / [RevealChevron],
 /// 手感一致。
 class PlatformCard extends StatefulWidget {
   const PlatformCard({super.key, required this.isDark, required this.info});

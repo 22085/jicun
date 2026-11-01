@@ -9,11 +9,9 @@ import 'package:jicun/ui/palette.dart';
 import 'package:jicun/ui/popup.dart';
 import 'package:jicun/ui/widgets.dart';
 import 'package:jicun/update_service.dart';
-import 'package:jicun/ui/about_page.dart';
 import 'package:jicun/ui/auto_paste_page.dart';
 import 'package:jicun/ui/help_feedback_page.dart';
 import 'package:jicun/ui/notification_management_page.dart';
-import 'package:jicun/ui/sponsor_page.dart';
 import 'package:jicun/ui/theme_appearance_page.dart';
 
 /// 设置板块的**索引页**,以及它用的那两个小组件。
@@ -46,9 +44,7 @@ class SettingsPage extends StatelessWidget {
     const SettingsOption('自动粘贴并解析', '剪贴板首条链接自动解析', icon: '粘贴'),
     if (updateSupported)
       const SettingsOption('检查更新', '点击检查最新版本', showChevron: false),
-    const SettingsOption('使用帮助及反馈', '看APP支持范围及类别，反馈问题渠道', icon: '帮助及联系反馈'),
-    const SettingsOption('关于本APP', '开源地址，彩蛋（自行摸索），免责声明'),
-    const SettingsOption('赞助名单', '为本项目提供支持的吴彦祖和刘亦菲', icon: '赞助名单'),
+    const SettingsOption('使用帮助及反馈', '看APP支持范围及类别', icon: '帮助及联系反馈'),
     const SettingsOption('广告展示(演示)', '灰鲸每种广告类型各试一次', icon: '赞助名单'),
   ];
 
@@ -127,18 +123,6 @@ class SettingsPage extends StatelessWidget {
       return;
     }
 
-    if (title == '关于本APP') {
-      Navigator.of(context)
-          .push(SubPageRoute<void>(builder: (_) => const AboutAppPage()));
-      return;
-    }
-
-    if (title == '赞助名单') {
-      Navigator.of(context)
-          .push(SubPageRoute<void>(builder: (_) => const SponsorPage()));
-      return;
-    }
-
     if (title == '广告展示(演示)') {
       Navigator.of(context).push(
         SubPageRoute<void>(builder: (_) => const AdShowcasePage()),
@@ -147,7 +131,7 @@ class SettingsPage extends StatelessWidget {
     }
 
     // 兜底:以后在 _options 里加一项却忘了给它接二级页,点下去就是这句话。
-    // 现在这八项各自都有去处,所以这条暂时到不了(上一版注释写的是「只有『使用帮助及
+    // 现在这六项各自都有去处,所以这条暂时到不了(上一版注释写的是「只有『使用帮助及
     // 反馈』到得了」,而那一项在上面就 return 了)。
     showInfo(context, title, '该设置项将在后续版本开放。');
   }

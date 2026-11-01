@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 // material 是**选择性**转出 foundation 的,defaultTargetPlatform 不在里面,得自己引。
 import 'package:jicun/sponsor_store.dart';
+import 'package:jicun/ui/ad_banner.dart';
 import 'package:jicun/ui/glass.dart';
 import 'package:jicun/ui/motion.dart';
 import 'package:jicun/ui/palette.dart';
@@ -95,6 +96,9 @@ class _SponsorPageState extends State<SponsorPage> {
                       ),
                     ),
                   ),
+                  // 页面底部横幅:加载失败自动隐藏,不留空白条。
+                  const SizedBox(height: 12),
+                  const AdBanner(),
                 ],
               );
             },

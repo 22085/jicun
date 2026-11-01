@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:jicun/shell_controller.dart';
+import 'package:jicun/ui/ad_banner.dart';
 import 'package:jicun/ui/app_background.dart';
 import 'package:jicun/ui/glass.dart';
 import 'package:jicun/ui/motion.dart';
@@ -145,6 +146,9 @@ class ThemeAppearancePage extends StatelessWidget {
               ],
               const SizedBox(height: 16),
               UiScaleCard(app: app, isDark: isDark),
+              // 页面底部横幅:加载失败自动隐藏,不留空白条。
+              const SizedBox(height: 16),
+              const AdBanner(),
             ],
           ),
         ),

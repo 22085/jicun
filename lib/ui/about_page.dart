@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 // material 是**选择性**转出 foundation 的,defaultTargetPlatform 不在里面,得自己引。
 import 'package:flutter/services.dart';
+import 'package:jicun/ui/ad_banner.dart';
 import 'package:jicun/ui/glass.dart';
 import 'package:jicun/ui/motion.dart';
 import 'package:jicun/ui/palette.dart';
@@ -92,6 +93,9 @@ class AboutAppPage extends StatelessWidget {
                         '解析与下载的内容版权归原作者所有，请自行确认拥有相应权利后再保存或传播，'
                         '因使用本工具产生的一切后果由使用者自行承担。',
                   ),
+                  // 页面底部横幅:加载失败自动隐藏,不留空白条。
+                  const SizedBox(height: 12),
+                  const AdBanner(),
                 ],
               ),
               // 彩蛋钉在内容区右下角,浮在卡片之上。**不能**挪进 ListView 当最后

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 // material 是**选择性**转出 foundation 的,defaultTargetPlatform 不在里面,得自己引。
 import 'package:jicun/shell_controller.dart';
+import 'package:jicun/ui/ad_banner.dart';
 import 'package:jicun/ui/glass.dart';
 import 'package:jicun/ui/motion.dart';
 
@@ -43,6 +44,9 @@ class AutoPastePage extends StatelessWidget {
                       app.applySetting(() => app.autoPasteParse = value),
                 ),
               ),
+              // 页面底部横幅:加载失败自动隐藏,不留空白条。
+              const SizedBox(height: 12),
+              const AdBanner(),
             ],
           ),
         ),
