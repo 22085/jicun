@@ -95,7 +95,7 @@ class AboutAppPage extends StatelessWidget {
                   ),
                   // 页面底部横幅:加载失败自动隐藏,不留空白条。
                   const SizedBox(height: 12),
-                  const AdBanner(),
+                  const AdBanner(key: ValueKey('banner-about')),
                 ],
               ),
               // 彩蛋钉在内容区右下角,浮在卡片之上。**不能**挪进 ListView 当最后

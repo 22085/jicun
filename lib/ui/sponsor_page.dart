@@ -98,7 +98,7 @@ class _SponsorPageState extends State<SponsorPage> {
                   ),
                   // 页面底部横幅:加载失败自动隐藏,不留空白条。
                   const SizedBox(height: 12),
-                  const AdBanner(),
+                  const AdBanner(key: ValueKey('banner-sponsor')),
                 ],
               );
             },

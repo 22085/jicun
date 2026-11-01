@@ -9,6 +9,10 @@ import '../services/ad_config.dart';
 ///
 /// 仅 Android 生效;其它平台或总开关关闭时渲染为空。加载失败时
 /// 原生侧回调 onAdLoadError,本组件自动隐藏,不留空白条、不挡内容。
+///
+/// 调用处必须传一个页面内唯一的稳定 key(见各页的 `ValueKey('banner-…')`):
+/// 列表里兄弟项增减(比如解析页报错条出现/消失)时,没 key 的平台视图会
+/// 按位置错配、反复销毁重建,原生加载回调就可能撞上已销毁的视图而闪退。
 class AdBanner extends StatefulWidget {
   const AdBanner({super.key, this.height = 50});
 

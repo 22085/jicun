@@ -58,3 +58,12 @@
    consuming (:app) project's context, so a flatDir declared only in
    the plugin is invisible there and every AAR fails with
    "Could not find :<name>:" at :app:mergeReleaseNativeLibs.
+
+8. Crash guard (2026-11-01, jicun): `BannerView`/`FeedView` disposed the
+   platform view while an ad load was still in flight, then the load
+   callback dereferenced the nulled SDK object -> native NPE crash on
+   repeated parse taps (the parse page's error pill toggles siblings
+   above the banner). Both views now track a `disposed` flag and every
+   callback returns early once disposed; the Dart side also gives every
+   `AdBanner`/`AdFeedCard` a stable per-page `ValueKey` so sibling
+   insert/remove no longer destroys and recreates the platform view.

@@ -29,6 +29,9 @@ public class FeedView implements PlatformView, MethodChannel.MethodCallHandler {
 
     private View myNativeView;
     private HjAdsSdkNativeAd nativeAd;
+    // 与 BannerView 同一问题:加载回调可能晚于 dispose() 到达,回调里再碰
+    // 已置 null 的 nativeAd 就是空指针闪退。记已销毁,回调一律放行。
+    private volatile boolean disposed = false;
 
     private MethodChannel methodChannel;
 
@@ -63,6 +66,7 @@ public class FeedView implements PlatformView, MethodChannel.MethodCallHandler {
 
     @Override
     public void dispose() {
+        disposed = true;
         if (myNativeView instanceof ViewGroup) {
             ((ViewGroup) myNativeView).removeAllViews();
         }
@@ -79,6 +83,7 @@ public class FeedView implements PlatformView, MethodChannel.MethodCallHandler {
         nativeAd.loadAd(new HJOnAdsNativeAdLoadListener() {
             @Override
             public void onError(HJAdError error, String placementId) {
+                if (disposed) return;
                 Map<String, Object> args = new HashMap<>();
                 args.put("msg", error.msg);
                 methodChannel.invokeMethod("onError", args);
@@ -86,32 +91,39 @@ public class FeedView implements PlatformView, MethodChannel.MethodCallHandler {
 
             @Override
             public void onFeedAdLoad(String placementId) {
+                if (disposed) return;
                 Log.d(hjTag, "___" + Process.myPid() + "___" + "onFeedAdLoad");
 
                 methodChannel.invokeMethod("onFeedAdLoad", null);
 
-                List<HJNativeAdData> unifiedADData = nativeAd.getNativeAdDataList();
+                HjAdsSdkNativeAd ad = nativeAd;
+                if (ad == null) return;
+                List<HJNativeAdData> unifiedADData = ad.getNativeAdDataList();
                 if (unifiedADData != null && unifiedADData.size() > 0) {
                     Log.d(hjTag, "___" + Process.myPid() + "___" + "unifiedADData.size=" + unifiedADData.size());
                     HJNativeAdData nativeAdData = unifiedADData.get(0);
                     nativeAdData.setInteractionListener(new HJNativeAdData.NativeAdInteractionListener() {
                         @Override
                         public void onADExposed() {
+                            if (disposed) return;
                             methodChannel.invokeMethod("onADExposed", null);
                         }
 
                         @Override
                         public void onADClicked() {
+                            if (disposed) return;
                             methodChannel.invokeMethod("onADClicked", null);
                         }
 
                         @Override
                         public void onADRenderSuccess(View view, float v, float v1) {
+                            if (disposed) return;
                             methodChannel.invokeMethod("onADRenderSuccess", null);
                         }
 
                         @Override
                         public void onADError(HJAdError hjAdError) {
+                            if (disposed) return;
                             Map<String, Object> args = new HashMap<>();
                             args.put("msg", hjAdError.msg);
                             methodChannel.invokeMethod("onADError", args);

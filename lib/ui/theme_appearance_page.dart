@@ -148,7 +148,7 @@ class ThemeAppearancePage extends StatelessWidget {
               UiScaleCard(app: app, isDark: isDark),
               // 页面底部横幅:加载失败自动隐藏,不留空白条。
               const SizedBox(height: 16),
-              const AdBanner(),
+              const AdBanner(key: ValueKey('banner-theme')),
             ],
           ),
         ),

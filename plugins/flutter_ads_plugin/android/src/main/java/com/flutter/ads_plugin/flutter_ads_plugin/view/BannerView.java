@@ -23,6 +23,10 @@ import io.flutter.plugin.platform.PlatformView;
 public class BannerView implements PlatformView, MethodChannel.MethodCallHandler {
     private View myNativeView;
     private HJAdsSdkBanner hjAdsSdkBanner;
+    // 加载是异步的:Flutter 侧重建/切页时 dispose() 可能先于加载回调到达。
+    // 回调里再碰 hjAdsSdkBanner(已置 null)就是空指针,直接闪退。先记已销毁,
+    // 所有回调一律放行,绝不在销毁后碰 SDK 对象。
+    private volatile boolean disposed = false;
 
     private MethodChannel methodChannel;
 
@@ -57,6 +61,7 @@ public class BannerView implements PlatformView, MethodChannel.MethodCallHandler
 
     @Override
     public void dispose() {
+        disposed = true;
         if (myNativeView instanceof ViewGroup) {
             ((ViewGroup) myNativeView).removeAllViews();
         }
@@ -71,14 +76,18 @@ public class BannerView implements PlatformView, MethodChannel.MethodCallHandler
         hjAdsSdkBanner = new HJAdsSdkBanner(context, new HJOnAdsSdkBannerListener() {
             @Override
             public void onAdLoadSuccess(String s) {
+                if (disposed) return;
+                HJAdsSdkBanner banner = hjAdsSdkBanner;
+                if (banner == null) return;
                 methodChannel.invokeMethod("onAdLoadSuccess", null);
-                if (hjAdsSdkBanner.isReady()) {
-                    hjAdsSdkBanner.showAd(container);
+                if (banner.isReady()) {
+                    banner.showAd(container);
                 }
             }
 
             @Override
             public void onAdLoadError(HJAdError hjAdError, String s) {
+                if (disposed) return;
                 Map<String, Object> args = new HashMap<>();
                 args.put("msg", hjAdError.msg);
                 methodChannel.invokeMethod("onAdLoadError", args);
@@ -86,26 +95,31 @@ public class BannerView implements PlatformView, MethodChannel.MethodCallHandler
 
             @Override
             public void onAdShown() {
+                if (disposed) return;
                 methodChannel.invokeMethod("onAdShown", null);
             }
 
             @Override
             public void onAdClicked() {
+                if (disposed) return;
                 methodChannel.invokeMethod("onAdClicked", null);
             }
 
             @Override
             public void onAdClosed() {
+                if (disposed) return;
                 methodChannel.invokeMethod("onAdClosed", null);
             }
 
             @Override
             public void onAdAutoRefreshed() {
+                if (disposed) return;
                 methodChannel.invokeMethod("onAdAutoRefreshed", null);
             }
 
             @Override
             public void onAdAutoRefreshFail(HJAdError hjAdError, String s) {
+                if (disposed) return;
                 methodChannel.invokeMethod("onAdAutoRefreshFail", null);
             }
         });

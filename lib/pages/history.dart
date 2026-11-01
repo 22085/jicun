@@ -158,9 +158,9 @@ class HistoryPageState extends State<HistoryPage> {
           ),
         // 列表末尾的信息流卡与底部横幅:失败时卡片留空位、横幅自动隐藏。
         const SizedBox(height: 12),
-        const AdFeedCard(),
+        const AdFeedCard(key: ValueKey('feed-history')),
         const SizedBox(height: 12),
-        const AdBanner(),
+        const AdBanner(key: ValueKey('banner-history')),
       ],
     );
   }

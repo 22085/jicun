@@ -80,7 +80,7 @@ class SettingsPage extends StatelessWidget {
         ),
         // 设置页底部横幅:加载失败自动隐藏,不留空白条。
         const SizedBox(height: 12),
-        const AdBanner(),
+        const AdBanner(key: ValueKey('banner-settings')),
       ],
     );
   }
