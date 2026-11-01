@@ -65,6 +65,22 @@ class ParseService {
   /// 运营商阻断时,换域名是唯一的出路,见 api_host.dart)。
   static String get endpoint => apiUrl('/parse');
 
+  /// 我们自己部署的 media-parser(见 jx.sshdog.com)。编译进包的固定地址,
+  /// 不是密钥:占位 secrets 的构建没有可用的解析后端时,兜底链第二跳走这里。
+  ///
+  /// 接口与 media-parser 的微服务模式一致:`GET /api/v1/parse?url=…`,应答是
+  /// media-parser 那套(`retcode`/`data`),[ParseResult.fromJson] 直接能读。
+  /// 顺序上它在 [endpoint] 之后 —— 真值构建里 [endpoint] 是原作者的服务器,
+  /// 优先走它,行为和以前一致;只有它失败时才轮到这一跳。
+  static const String ownParseEndpoint =
+      'https://jx.sshdog.com/api/v1/parse';
+
+  /// 公开的 alldl 接口(免密钥,国外平台兜底)。应答是另一套结构(见
+  /// [ParseResult.fromAlldl]),只在认不出的平台上试 —— 国内平台它解析不了
+  /// (抖音实测 403)。设备签名头不发给它(见 [_request])。
+  static const String alldlEndpoint =
+      'https://batgpt.vercel.app/api/alldl';
+
   /// 上游聚合接口的站点(第三方)。**APP 直连,不经我们的服务器。**
   ///
   /// 两个站点都实测过,差别**不在解析快慢,而在签出来的下载 CDN**:
@@ -187,8 +203,9 @@ class ParseService {
   ///
   /// 路由:
   /// - 在 [upstreamPaths] 或 [publicUpstreamPaths] 里的平台 → 先打该平台那条第三方
-  ///   接口(前者带我们的密钥,后者是公开接口、不带);
-  /// - 其他平台 → 只用 media-parser。
+  ///   接口(前者带我们的密钥,后者是公开接口、不带),失败再走兜底链;
+  /// - 其他平台 → 只走兜底链(见 [_requestFallback]):先打 [endpoint],再打自建的
+  ///   [ownParseEndpoint],认不出的平台最后再试公开的 [alldlEndpoint]。
   ///
   /// **上游那一趟只要没拿到能用的结果就回落**,四种情况都算:
   ///   1. 超时、限流、连不上、返回的不是 JSON(比如反代还没配 `/parse2`,会回
@@ -264,7 +281,10 @@ class ParseService {
       }
 
       try {
-        final result = await _request(endpoint, shareUrl, _timeout);
+        final result = await _requestFallback(
+          shareUrl,
+          platform: platform,
+        );
         lastRoute = '$lastRoute→fallback';
         return result;
       } on ParseException {
@@ -275,7 +295,70 @@ class ParseService {
     }
 
     lastRoute = 'fallback-only';
-    return _request(endpoint, shareUrl, _timeout);
+    return _requestFallback(
+      shareUrl,
+      platform: platform,
+      includeAlldl: true,
+    );
+  }
+
+  /// 兜底链:先打 [endpoint](服务端下发的域名),再打自建的 [ownParseEndpoint],
+  /// 认不出的平台([includeAlldl] 为真)最后再试公开的 [alldlEndpoint]。
+  ///
+  /// **只有「路的问题」才换下一跳**:[endpoint] 回了内容错误(链接失效、平台不
+  /// 支持)时那是服务端的正式答案,换后端也一样,直接抛 —— 否则原作者服务器的
+  /// 每一句正式结论都会被自建后端再问一遍,还可能把一条明确的失败翻成成功。
+  /// 占位构建里 [endpoint] 只是 DNS 失败(路的问题),很快就轮到下一跳。
+  /// 自建后端回了内容错误时,认不出的平台再试 alldl(国外平台自建后端不认,
+  /// 但 alldl 可能认);其余情况直接抛自建后端那句。
+  Future<ParseResult> _requestFallback(
+    String shareUrl, {
+    required ParsePlatform platform,
+    bool includeAlldl = false,
+    Duration? timeout,
+  }) async {
+    final wait = timeout ?? _timeout;
+    try {
+      return await _request(endpoint, shareUrl, wait, platform: platform);
+    } on ParseException catch (error) {
+      if (!_isTransportError(error)) rethrow;
+    }
+    ParseException? ownError;
+    try {
+      return await _request(
+        ownParseEndpoint,
+        shareUrl,
+        wait,
+        platform: platform,
+      );
+    } on ParseException catch (error) {
+      ownError = error;
+    }
+    if (!includeAlldl) throw ownError!;
+    try {
+      return await _request(
+        alldlEndpoint,
+        shareUrl,
+        wait,
+        platform: platform,
+        alldl: true,
+      );
+    } on ParseException catch (error) {
+      // 自建后端那句是内容结论时它赢;路的问题时 alldl 那句更新(也可能是真原因)。
+      throw _isTransportError(ownError!) ? error : ownError!;
+    }
+  }
+
+  /// 这句失败是不是「路的问题」而不是「链接的问题」:路的问题换一条后端
+  /// 可能就通了,链接的问题换后端也一样—— 兜底链(见 [_requestFallback])就
+  /// 按这个分:路的问题继续下一跳,链接的问题直接抛这一跳的结论。
+  static bool _isTransportError(ParseException error) {
+    final message = error.message;
+    return message.contains('网络连接失败') ||
+        message.contains('解析超时') ||
+        message.contains('服务器异常') ||
+        message.contains('返回内容无法识别') ||
+        message.contains('请求太频繁');
   }
 
   /// 补一张**真专辑封面**。
@@ -298,7 +381,11 @@ class ParseService {
   ) async {
     for (var attempt = 1; attempt <= _coverAttempts; attempt++) {
       try {
-        final source = await _request(endpoint, shareUrl, _coverTimeout);
+        final source = await _requestFallback(
+          shareUrl,
+          platform: ParsePlatform.unknown,
+          timeout: _coverTimeout,
+        );
         final cover = source.coverUrl;
         if (cover == null || cover.isEmpty) {
           // 服务端答得清清楚楚:它这条链接也没封面。再问一次不会有别的答案。
@@ -339,6 +426,9 @@ class ParseService {
   ///
   /// [platform] 有两个用处:决定用哪个映射器(汽水音乐那条接口回的是一首歌,走
   /// [ParseResult.fromQishuiMusic]),以及应答里没写平台名时兜一个中文名给卡片。
+  ///
+  /// [alldl] 为真表示这是公开的 alldl 接口:应答是 `{success, mediaInfo}` 那套
+  /// (见 [ParseResult.fromAlldl]),不走 `_isSuccess`/`_dataOf` 那套判定。
   Future<ParseResult> _request(
     String endpoint,
     String shareUrl,
@@ -346,6 +436,7 @@ class ParseService {
     ParsePlatform? platform,
     bool fromUpstream = false,
     String? apiKey,
+    bool alldl = false,
   }) async {
     final uri = Uri.parse(endpoint).replace(queryParameters: {'url': shareUrl});
     // 密钥**只发给付费那家**:media-parser 的密钥由我们自己在 nginx 上注入,
@@ -449,6 +540,21 @@ class ParseService {
       }
       if (response.statusCode == 200) throw ParseException('返回内容无法识别');
       throw ParseException('服务器异常(${response.statusCode}),请稍后再试');
+    }
+
+    if (alldl) {
+      final info = body['mediaInfo'];
+      if (body['success'] == true && info is Map<String, dynamic>) {
+        final secured = secureMediaUrls(body) as Map<String, dynamic>;
+        final result = ParseResult.fromAlldl(
+          secured,
+          platform: platform?.label ?? '',
+        );
+        if (result.hasVideo || result.hasImages || result.hasAudio) {
+          return result;
+        }
+      }
+      // 没给媒体就按失败走:下面的错误读取会拿 `message`/`error` 当理由。
     }
 
     if (_isSuccess(body) && _dataOf(body) is Map) {

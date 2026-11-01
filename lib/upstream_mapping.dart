@@ -937,6 +937,27 @@ class ParseResult {
     }, platform: '汽水音乐');
   }
 
+  /// 公开 alldl 接口的应答 → 模型(见 [ParseService.alldlEndpoint])。
+  ///
+  /// 实测应答(YouTube,2026-11-01):`{success:true, mediaInfo:{title, author,
+  /// thumbnail, videoUrl}}`。只有一条视频、没有文案、没有图集、没有多档清晰度,
+  /// 所以只填这几项;没有视频地址时调用方按失败处理(见 [_request] 的 alldl 分支)。
+  factory ParseResult.fromAlldl(
+    Map<String, dynamic> body, {
+    String platform = '',
+  }) {
+    final info = body['mediaInfo'];
+    final media = info is Map<String, dynamic> ? info : const <String, dynamic>{};
+    return ParseResult(
+      title: cleanCopyText(_str(media['title'])),
+      desc: '',
+      platform: platform,
+      authorName: _str(media['author']),
+      videoUrl: _strOrNull(media['videoUrl']),
+      coverUrl: _strOrNull(media['thumbnail']),
+    );
+  }
+
   final String title;
   final String desc;
   final String platform;

@@ -494,6 +494,35 @@ void main() {
     });
   });
 
+  group('ParseResult.fromAlldl', () {
+    test('取到标题、作者、视频、封面', () {
+      final result = ParseResult.fromAlldl(<String, dynamic>{
+        'success': true,
+        'mediaInfo': <String, dynamic>{
+          'title': '国外视频',
+          'author': '某人',
+          'thumbnail': 'https://cdn.example/c.jpg',
+          'videoUrl': 'https://cdn.example/v.mp4',
+        },
+      }, platform: 'YouTube');
+
+      expect(result.title, '国外视频');
+      expect(result.authorName, '某人');
+      expect(result.videoUrl, 'https://cdn.example/v.mp4');
+      expect(result.coverUrl, 'https://cdn.example/c.jpg');
+      expect(result.hasVideo, isTrue);
+    });
+
+    test('没有视频地址时不算有视频', () {
+      final result = ParseResult.fromAlldl(<String, dynamic>{
+        'success': true,
+        'mediaInfo': <String, dynamic>{'title': '空'},
+      });
+
+      expect(result.hasVideo, isFalse);
+    });
+  });
+
   group('ParseService', () {
     ParseService serviceReturning(String body, {int status = 200}) =>
         ParseService(
@@ -541,6 +570,122 @@ void main() {
         requests.single.url.queryParameters['url'],
         'https://example.com/share/123',
       );
+    });
+
+    test('兜底链:服务端域名不通时走自建后端', () async {
+      final requests = <http.BaseRequest>[];
+      final service = ParseService(
+        client: MockClient((request) async {
+          requests.add(request);
+          if (request.url.host == apiHost) {
+            throw http.ClientException('boom');
+          }
+          return http.Response.bytes(
+            utf8.encode(
+              jsonEncode(<String, dynamic>{
+                'succ': true,
+                'retcode': 200,
+                'data': <String, dynamic>{
+                  'title': '自建后端视频',
+                  'video_url': 'https://cdn.example/v.mp4',
+                },
+              }),
+            ),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      final result = await service.parse('https://example.com/share/123');
+
+      expect(result.title, '自建后端视频');
+      expect(requests, hasLength(2));
+      expect(requests[0].url.path, '/parse');
+      expect(requests[1].url.host, 'jx.sshdog.com');
+      expect(requests[1].url.path, '/api/v1/parse');
+    });
+
+    test('兜底链:自建后端不认国外链接时走 alldl', () async {
+      final requests = <http.BaseRequest>[];
+      final service = ParseService(
+        client: MockClient((request) async {
+          requests.add(request);
+          if (request.url.host == apiHost) {
+            throw http.ClientException('boom');
+          }
+          if (request.url.host == 'jx.sshdog.com') {
+            return http.Response.bytes(
+              utf8.encode(
+                jsonEncode(<String, dynamic>{
+                  'retcode': 400,
+                  'retdesc': '该链接尚未支持提取',
+                  'error_code': 'PLATFORM_NOT_SUPPORTED',
+                }),
+              ),
+              400,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response.bytes(
+            utf8.encode(
+              jsonEncode(<String, dynamic>{
+                'success': true,
+                'mediaInfo': <String, dynamic>{
+                  'title': '国外视频',
+                  'author': '某人',
+                  'thumbnail': 'https://cdn.example/c.jpg',
+                  'videoUrl': 'https://cdn.example/v.mp4',
+                },
+              }),
+            ),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      final result = await service.parse('https://youtu.be/dQw4w9WgXcQ');
+
+      expect(result.title, '国外视频');
+      expect(result.videoUrl, 'https://cdn.example/v.mp4');
+      expect(requests, hasLength(3));
+      expect(requests[2].url.path, '/api/alldl');
+      expect(
+        requests[2].url.queryParameters['url'],
+        'https://youtu.be/dQw4w9WgXcQ',
+      );
+    });
+
+    test('兜底链:服务端回了内容错误就不换下一跳', () async {
+      final requests = <http.BaseRequest>[];
+      final service = ParseService(
+        client: MockClient((request) async {
+          requests.add(request);
+          return http.Response.bytes(
+            utf8.encode(
+              jsonEncode(<String, dynamic>{
+                'retcode': 400,
+                'retdesc': '该平台暂不支持',
+              }),
+            ),
+            400,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      await expectLater(
+        service.parse('https://example.com/share/123'),
+        throwsA(
+          isA<ParseException>().having(
+            (e) => e.message,
+            'message',
+            '该平台暂不支持',
+          ),
+        ),
+      );
+      expect(requests, hasLength(1));
     });
 
     test('预热只打一次,而且打的是 /ping', () async {
