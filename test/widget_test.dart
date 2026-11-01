@@ -176,13 +176,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('检查更新'), findsNothing);
-      // 只该少掉「检查更新」那一条和已隐藏的「关于本APP」「赞助名单」,
-      // 别的入口都在 —— 别把整份清单一起挡掉了。
+      // 只该少掉「检查更新」那一条和已隐藏的「关于本APP」「赞助名单」
+      // 与「广告展示(演示)」,别的入口都在 —— 别把整份清单一起挡掉了。
       expect(find.text('主题与外观'), findsOneWidget);
       expect(find.text('使用帮助及反馈'), findsOneWidget);
       expect(find.text('关于本APP'), findsNothing);
       expect(find.text('赞助名单'), findsNothing);
-      expect(find.text('广告展示(演示)'), findsOneWidget);
+      expect(find.text('广告展示(演示)'), findsNothing);
 
       await tester.tap(find.text('通知管理与下载'));
       await tester.pumpAndSettle();

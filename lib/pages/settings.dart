@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 // material 是**选择性**转出 foundation 的,defaultTargetPlatform 不在里面,得自己引。
 import 'package:jicun/shell_controller.dart';
 import 'package:jicun/ui/ad_banner.dart';
-import 'package:jicun/ui/ad_showcase_page.dart';
 import 'package:jicun/ui/glass.dart';
 import 'package:jicun/ui/icons.dart';
 import 'package:jicun/ui/palette.dart';
@@ -45,7 +44,6 @@ class SettingsPage extends StatelessWidget {
     if (updateSupported)
       const SettingsOption('检查更新', '点击检查最新版本', showChevron: false),
     const SettingsOption('使用帮助及反馈', '看APP支持范围及类别', icon: '帮助及联系反馈'),
-    const SettingsOption('广告展示(演示)', '灰鲸每种广告类型各试一次', icon: '赞助名单'),
   ];
 
   @override
@@ -123,15 +121,8 @@ class SettingsPage extends StatelessWidget {
       return;
     }
 
-    if (title == '广告展示(演示)') {
-      Navigator.of(context).push(
-        SubPageRoute<void>(builder: (_) => const AdShowcasePage()),
-      );
-      return;
-    }
-
     // 兜底:以后在 _options 里加一项却忘了给它接二级页,点下去就是这句话。
-    // 现在这六项各自都有去处,所以这条暂时到不了(上一版注释写的是「只有『使用帮助及
+    // 现在这五项各自都有去处,所以这条暂时到不了(上一版注释写的是「只有『使用帮助及
     // 反馈』到得了」,而那一项在上面就 return 了)。
     showInfo(context, title, '该设置项将在后续版本开放。');
   }

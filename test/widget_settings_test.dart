@@ -105,7 +105,7 @@ void main() {
     expect(find.text('浅色').hitTestable(), findsNothing);
   });
 
-  testWidgets('关于本APP与赞助名单:设置入口已隐藏,广告展示入口在', (tester) async {
+  testWidgets('关于本APP、赞助名单与广告展示:设置入口已隐藏', (tester) async {
     usePhoneSurface(tester);
     await tester.pumpWidget(const LiquidGlassDemo(autoCheckUpdate: false));
     await tester.pump(const Duration(milliseconds: 300));
@@ -116,7 +116,7 @@ void main() {
     // 入口藏了,页面本身还在库里,只是从设置里进不去了。
     expect(find.text('关于本APP'), findsNothing);
     expect(find.text('赞助名单'), findsNothing);
-    expect(find.text('广告展示(演示)'), findsOneWidget);
+    expect(find.text('广告展示(演示)'), findsNothing);
   });
 
   testWidgets('赞助名单:线上那份拉回来之后,存储里的表自己换新', (tester) async {
