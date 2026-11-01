@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:jicun/shell_controller.dart';
 import 'package:jicun/pages/preview.dart';
 import 'package:jicun/ui/ad_banner.dart';
+import 'package:jicun/ui/ad_feed_card.dart';
 import 'package:jicun/ui/glass.dart';
 import 'package:jicun/ui/icons.dart';
 import 'package:jicun/ui/motion.dart';
@@ -72,7 +73,9 @@ class ParsePage extends StatelessWidget {
             ],
           ),
         ),
-        // 页面底部横幅:加载失败自动隐藏,不留空白条。
+        // 底部的信息流卡与横幅:信息流失败留空位、横幅加载失败自动隐藏。
+        const SizedBox(height: 12),
+        const AdFeedCard(key: ValueKey('feed-parse')),
         const SizedBox(height: 12),
         const AdBanner(key: ValueKey('banner-parse')),
       ],
@@ -128,7 +131,8 @@ class PasteLinkCard extends StatelessWidget {
   void _start() {
     // 收键盘:解析结果就在这张卡下面,键盘立着会把它挡掉
     FocusManager.instance.primaryFocus?.unfocus();
-    app.startParse(app.linkController.text);
+    // 用户主动解析走激励视频门:看完才解析(自动粘贴不走这里)。
+    app.requestParse(app.linkController.text);
   }
 
   /// 粘贴:把剪贴板里的内容整条塞进输入框。

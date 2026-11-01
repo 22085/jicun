@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 // material 是**选择性**转出 foundation 的,defaultTargetPlatform 不在里面,得自己引。
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:jicun/ui/ad_banner.dart';
+import 'package:jicun/ui/ad_feed_card.dart';
 import 'package:jicun/ui/glass.dart';
 import 'package:jicun/ui/motion.dart';
 import 'package:jicun/ui/palette.dart';
@@ -96,7 +97,9 @@ class HelpFeedbackPage extends StatelessWidget {
                 const SizedBox(height: 16),
                 PlatformCard(isDark: isDark, info: platform),
               ],
-              // 页面底部横幅:加载失败自动隐藏,不留空白条。
+              // 页面底部的信息流卡与横幅:信息流失败留空位、横幅自动隐藏。
+              const SizedBox(height: 16),
+              const AdFeedCard(key: ValueKey('feed-help')),
               const SizedBox(height: 16),
               const AdBanner(key: ValueKey('banner-help')),
             ],

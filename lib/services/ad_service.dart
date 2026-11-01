@@ -32,6 +32,7 @@ class AdService {
   bool _initialized = false;
   bool _interstitialShowing = false;
   DateTime? _lastInterstitialShownAt;
+  DateTime? _lastRewardedAt;
   int _successfulParses = 0;
 
   bool get isReady => AdConfig.isSupported && _initialized;
@@ -88,6 +89,7 @@ class AdService {
   }
 
   /// 插屏:满足最短间隔才尝试展示,失败或超时直接放行。
+  /// 刚看完激励视频的同一间隔内不弹:激励和插屏不连弹。
   Future<void> maybeShowInterstitial() async {
     if (!isReady) return;
     if (_interstitialShowing) return;
@@ -95,6 +97,11 @@ class AdService {
     final last = _lastInterstitialShownAt;
     if (last != null &&
         now.difference(last) < AdConfig.interstitialMinInterval) {
+      return;
+    }
+    final lastReward = _lastRewardedAt;
+    if (lastReward != null &&
+        now.difference(lastReward) < AdConfig.interstitialMinInterval) {
       return;
     }
     _interstitialShowing = true;
@@ -130,7 +137,10 @@ class AdService {
 
   /// 激励视频:拿到奖励回调才返回 [RewardOutcome.granted]。
   /// 展示前先加载,加载成功回调里才 show;超时按失败处理。
-  /// 即存里激励只在广告展示页主动触发,不用来解锁任何功能。
+  /// 即存里激励是解析的门:用户主动解析先看完它才解析(见
+  /// `ShellController.requestParse`);展示页里也有同一入口的演示按钮。
+  /// 调用方按 [RewardOutcome] 分流:中途关掉不解析,加载/播放失败
+  /// 则不挡解析(演示 ID 常无填充)。
   Future<RewardOutcome> showReward() async {
     if (!isReady) return RewardOutcome.failed;
     bool rewarded = false;
@@ -149,6 +159,7 @@ class AdService {
         },
         onVideoRewarded: (_) {
           rewarded = true;
+          _lastRewardedAt = DateTime.now();
         },
         onVideoAdClosed: () {
           done(rewarded ? RewardOutcome.granted : RewardOutcome.dismissed);

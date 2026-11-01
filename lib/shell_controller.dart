@@ -12,7 +12,7 @@ import 'ui/prefs.dart';
 /// `main.dart → pages/ → main.dart` 互相 import。这里把页面**真正用到**的那些
 /// 成员抽成接口:页面只依赖这个文件,main.dart 单向依赖 pages/,环就断了。
 ///
-/// 只放页面用到的 24 个成员,不做成「整个根壳的公开 API」—— 那不叫解耦,
+/// 只放页面用到的 25 个成员,不做成「整个根壳的公开 API」—— 那不叫解耦,
 /// 只是把 main.dart 换个地方放。以后某个页面要碰新状态,就在这儿加一行。
 ///
 /// 实现方是 main.dart 里的 HomeShellState。
@@ -77,6 +77,13 @@ abstract interface class ShellController {
 
   /// 开始解析一条链接。
   Future<void> startParse(String link);
+
+  /// 用户主动解析的入口:先看完一条激励视频才解析。
+  ///
+  /// 剪贴板自动解析不走这里(冷启动时弹广告会挡住启动,它直接调
+  /// [startParse])。广告加载/播放失败时不挡解析(演示 ID 常无填充);
+  /// 用户中途关掉广告则不解析,并留一句提示。
+  Future<void> requestParse(String link);
 
   /// 解开解析锁(解析结束/被取消时)。
   void unlockParse();

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:jicun/services/ad_service.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:jicun/ui/motion.dart';
 import 'package:jicun/ui/palette.dart';
@@ -164,6 +167,18 @@ class SubPageRoute<T> extends CupertinoPageRoute<T> {
 
   @override
   Duration get transitionDuration => const Duration(milliseconds: 320);
+
+  /// 二级页被返回(手势或返回键)时,离开页面是插屏的自然断点:试一次,
+  /// 3 分钟冷却与刚看完激励视频的压制都在 AdService 里,失败就是没有插屏。
+  /// 路由已经弹出之后才触发,广告拉起要时间,不会挡住返回转场。
+  @override
+  bool didPop(T? result) {
+    final popped = super.didPop(result);
+    if (popped) {
+      unawaited(AdService.instance.maybeShowInterstitial());
+    }
+    return popped;
+  }
 }
 
 /// 把「键盘内缩」(viewInsets.bottom)从子树上摘掉。

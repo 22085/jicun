@@ -113,6 +113,9 @@ class HomeShellState extends State<LiquidGlassDemo>
 
   /// 这次横滑累计了多少 dx。手势结束时靠它判「拖得够远」。
   double _swipeDx = 0;
+
+  /// 激励视频看广告门正在走流程:防着解析按钮连点时重复拉起激励广告。
+  bool _rewardGateRunning = false;
   Brightness _brightness =
       WidgetsBinding.instance.platformDispatcher.platformBrightness;
 
@@ -263,6 +266,32 @@ class HomeShellState extends State<LiquidGlassDemo>
     setState(() => parseLocked = false);
   }
 
+  /// 用户主动解析:先看激励视频,看完(或广告拉起失败)才解析。
+  ///
+  /// 中途关掉广告 = 没拿到奖励,不解析,只留一句提示。自动粘贴解析
+  /// 不走这里 —— 它直接调 [startParse],冷启动不弹广告。
+  @override
+  Future<void> requestParse(String link) async {
+    if (parsing || _rewardGateRunning) return;
+    final url = extractShareUrl(link) ?? link.trim();
+    if (url.isEmpty) return;
+    _rewardGateRunning = true;
+    try {
+      final outcome = await AdService.instance.showReward();
+      if (!mounted) return;
+      switch (outcome) {
+        case RewardOutcome.granted:
+        case RewardOutcome.failed:
+          // 加载/播放失败按放行处理:演示 ID 常无填充,不能因此永远解析不了。
+          await startParse(link);
+        case RewardOutcome.dismissed:
+          setState(() => parseError = '看完激励视频才能解析');
+      }
+    } finally {
+      _rewardGateRunning = false;
+    }
+  }
+
   @override
   Future<void> startParse(String link) async {
     final url = extractShareUrl(link) ?? link.trim();
@@ -324,7 +353,7 @@ class HomeShellState extends State<LiquidGlassDemo>
     if (entry.sourceUrl.isEmpty) return;
     linkController.text = entry.sourceUrl;
     _selectTab(0);
-    await startParse(entry.sourceUrl);
+    await requestParse(entry.sourceUrl);
   }
 
   /// 读剪贴板里的文字,读不到返回 null。
@@ -810,6 +839,8 @@ class HomeShellState extends State<LiquidGlassDemo>
     final next = index + (forward ? 1 : -1);
     // 到头了(解析再往右、设置再往左)不动,不做循环。
     if (next < 0 || next >= _tabDefs.length) return;
+    // 横滑切走板块也是离开页面:试一次插屏,冷却在 AdService 里。
+    unawaited(AdService.instance.maybeShowInterstitial());
     _selectTab(next);
   }
 
@@ -909,7 +940,16 @@ class HomeShellState extends State<LiquidGlassDemo>
                       Expanded(
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onTap: () => _selectTab(i),
+                          onTap: () {
+                            // 点底栏切走板块:离开页面是插屏的自然断点,试一次,
+                            // 冷却在 AdService 里;点的是当前板块就不试。
+                            if (i != _tabIndex.value) {
+                              unawaited(
+                                AdService.instance.maybeShowInterstitial(),
+                              );
+                            }
+                            _selectTab(i);
+                          },
                           child: _plainTabItem(i, isDark, selected),
                         ),
                       ),

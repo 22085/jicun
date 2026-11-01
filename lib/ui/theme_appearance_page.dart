@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/material.dart';
 import 'package:jicun/shell_controller.dart';
 import 'package:jicun/ui/ad_banner.dart';
+import 'package:jicun/ui/ad_feed_card.dart';
 import 'package:jicun/ui/app_background.dart';
 import 'package:jicun/ui/glass.dart';
 import 'package:jicun/ui/motion.dart';
@@ -146,7 +147,9 @@ class ThemeAppearancePage extends StatelessWidget {
               ],
               const SizedBox(height: 16),
               UiScaleCard(app: app, isDark: isDark),
-              // 页面底部横幅:加载失败自动隐藏,不留空白条。
+              // 页面底部的信息流卡与横幅:信息流失败留空位、横幅自动隐藏。
+              const SizedBox(height: 16),
+              const AdFeedCard(key: ValueKey('feed-theme')),
               const SizedBox(height: 16),
               const AdBanner(key: ValueKey('banner-theme')),
             ],
